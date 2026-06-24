@@ -1,0 +1,30 @@
+# Android / Gradle
+.gradle/
+build/
+/local.properties
+/captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+*.keystore
+*.jks
+
+# Android Studio / IDE
+.idea/
+*.iml
+.DS_Store
+
+# Secrets — never commit fleet auth, device keys, tokens
+secrets.properties
+*.token
+keystore.properties
+.env
+server/.env
+
+# Python
+__pycache__/
+*.pyc
+
+# Personal dev notes — not for the public repo
+dev/

@@ -1,0 +1,11 @@
+services:
+  forwarder:
+    build: .
+    container_name: fieldnode-forwarder
+    restart: unless-stopped
+    # Bind to localhost only — Apache reverse-proxies to it over TLS; never exposed directly.
+    # Host port 8094 (8090–8093 were taken on the VPS); container stays 8090.
+    ports:
+      - "127.0.0.1:8094:8090"
+    env_file:
+      - .env

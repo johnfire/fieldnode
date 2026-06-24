@@ -1,0 +1,19 @@
+<resources>
+    <string name="app_name">Fieldnode</string>
+    <string name="grant_all_files_access">Grant all-files access</string>
+    <string name="run_self_test">Run file-engine self-test</string>
+    <string name="open_file_browser">Open file browser</string>
+    <string name="canary_start">Start survival canary</string>
+    <string name="canary_stop">Stop canary</string>
+    <string name="canary_refresh">Refresh heartbeat</string>
+    <string name="open_captures">Captures</string>
+    <string name="capture_note_hint">Quick note…</string>
+    <string name="capture_button">Capture</string>
+    <string name="captures_empty">No captures yet. Share text/an image to Fieldnode, or type a note above.</string>
+    <string name="dispatch_button">Dispatch to fleet</string>
+    <string name="browser_up">Up</string>
+    <string name="browser_new_file">New file</string>
+    <string name="browser_new_folder">New folder</string>
+    <string name="browser_trash">Trash</string>
+    <string name="browser_log">Log</string>
+</resources>
