@@ -52,6 +52,12 @@
             android:exported="false"
             android:label="@string/open_nearby" />
 
+        <activity
+            android:name=".AgentActivity"
+            android:exported="false"
+            android:label="@string/open_agent"
+            android:windowSoftInputMode="adjustResize" />
+
         <!-- Share target: receive text / images from any app into the capture queue. -->
         <activity
             android:name=".ShareReceiverActivity"

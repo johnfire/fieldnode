@@ -21,6 +21,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var status: TextView
     private lateinit var grantButton: Button
+    private lateinit var agentButton: Button
     private lateinit var capturesButton: Button
     private lateinit var nearbyButton: Button
     private lateinit var browserButton: Button
@@ -38,6 +39,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         status = findViewById(R.id.status)
         grantButton = findViewById(R.id.grant_button)
+        agentButton = findViewById(R.id.agent_button)
         capturesButton = findViewById(R.id.captures_button)
         nearbyButton = findViewById(R.id.nearby_button)
         browserButton = findViewById(R.id.browser_button)
@@ -52,6 +54,7 @@ class MainActivity : AppCompatActivity() {
 
         val canaryIntent = Intent(this, SurvivalCanaryService::class.java)
         grantButton.setOnClickListener { openAllFilesAccessSettings() }
+        agentButton.setOnClickListener { startActivity(Intent(this, AgentActivity::class.java)) }
         capturesButton.setOnClickListener { startActivity(Intent(this, CapturesActivity::class.java)) }
         nearbyButton.setOnClickListener { startActivity(Intent(this, NearbyActivity::class.java)) }
         browserButton.setOnClickListener { startActivity(Intent(this, FileBrowserActivity::class.java)) }
@@ -92,6 +95,7 @@ class MainActivity : AppCompatActivity() {
 
         val visibility = if (granted) View.VISIBLE else View.GONE
         grantButton.visibility = if (granted) View.GONE else View.VISIBLE
+        agentButton.visibility = visibility
         capturesButton.visibility = visibility
         nearbyButton.visibility = visibility
         browserButton.visibility = visibility

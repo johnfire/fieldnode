@@ -26,6 +26,12 @@ ENGCRM_EMAIL = os.environ.get("ENGCRM_EMAIL", "")
 ENGCRM_PASSWORD = os.environ.get("ENGCRM_PASSWORD", "")
 _engcrm_jwt = {"value": None, "ts": 0.0}
 
+# On-phone agent (v3): the forwarder proxies an OpenAI-compatible LLM (DeepSeek) holding the API key.
+# The phone runs the agent loop and executes the tools; this endpoint is a stateless completion proxy.
+LLM_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "")
+LLM_BASE_URL = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com").rstrip("/")
+AGENT_MODEL = os.environ.get("AGENT_MODEL", "deepseek-v4-flash")
+
 app = FastAPI(title="fieldnode-forwarder")
 
 
@@ -91,6 +97,39 @@ async def nearby(request: Request, lat: float, lng: float, limit: int = 10) -> d
             for lead in leads
         ],
     }
+
+
+@app.post("/agent")
+async def agent(request: Request) -> dict:
+    # One LLM turn for the on-phone agent. Body: {messages: [...], tools: [...]?}. Returns the
+    # assistant message ({role, content, tool_calls?}); the phone executes tools and loops.
+    presented_token = request.headers.get("X-Device-Token", "")
+    if not hmac.compare_digest(presented_token, DEVICE_TOKEN):
+        raise HTTPException(status_code=401, detail="bad device token")
+    if not LLM_API_KEY:
+        raise HTTPException(status_code=503, detail="agent LLM not configured")
+
+    body = await request.json()
+    payload = {
+        "model": AGENT_MODEL,
+        "messages": body.get("messages", []),
+        "temperature": body.get("temperature", 0.3),
+    }
+    if body.get("tools"):
+        payload["tools"] = body["tools"]
+
+    try:
+        async with httpx.AsyncClient(timeout=120) as client:
+            response = await client.post(
+                f"{LLM_BASE_URL}/chat/completions", json=payload,
+                headers={"Authorization": f"Bearer {LLM_API_KEY}"},
+            )
+    except httpx.RequestError as error:
+        raise HTTPException(status_code=502, detail=f"llm unreachable: {error}")
+    if response.status_code // 100 != 2:
+        raise HTTPException(status_code=502, detail=f"llm {response.status_code}: {response.text[:200]}")
+
+    return response.json()["choices"][0]["message"]
 
 
 @app.post("/ack")
