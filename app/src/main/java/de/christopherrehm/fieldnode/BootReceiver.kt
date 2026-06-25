@@ -24,5 +24,7 @@ class BootReceiver : BroadcastReceiver() {
         File(dir, "heartbeat.log").appendText("$stamp\tBOOT_COMPLETED received (MIUI autostart works)\n")
 
         context.startForegroundService(Intent(context, SurvivalCanaryService::class.java))
+        // Resume listening for fleet messages after a reboot.
+        context.startForegroundService(Intent(context, NotifyService::class.java))
     }
 }

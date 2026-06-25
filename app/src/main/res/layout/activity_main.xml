@@ -68,6 +68,20 @@
             android:layout_marginTop="4dp"
             android:text="@string/canary_refresh" />
 
+        <Button
+            android:id="@+id/notify_start_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/notify_start" />
+
+        <Button
+            android:id="@+id/notify_stop_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/notify_stop" />
+
         <TextView
             android:id="@+id/canary_status"
             android:layout_width="match_parent"

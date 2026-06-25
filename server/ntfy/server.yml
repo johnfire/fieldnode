@@ -1,0 +1,8 @@
+# ntfy server config. Set base-url to YOUR public ntfy URL. Auth is deny-all: nothing is readable
+# or publishable without a token (see README). Runs behind a reverse proxy that terminates TLS.
+base-url: "https://ntfy.example.com"
+listen-http: ":80"
+auth-file: "/var/lib/ntfy/user.db"
+auth-default-access: "deny-all"
+behind-proxy: true
+attachment-cache-dir: "/var/lib/ntfy/attachments"

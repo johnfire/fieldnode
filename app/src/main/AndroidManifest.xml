@@ -65,6 +65,10 @@
             android:name=".SurvivalCanaryService"
             android:exported="false" />
 
+        <service
+            android:name=".NotifyService"
+            android:exported="false" />
+
         <receiver
             android:name=".BootReceiver"
             android:exported="true"

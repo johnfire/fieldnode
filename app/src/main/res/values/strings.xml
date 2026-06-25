@@ -11,6 +11,8 @@
     <string name="capture_button">Capture</string>
     <string name="captures_empty">No captures yet. Share text/an image to Fieldnode, or type a note above.</string>
     <string name="dispatch_button">Dispatch to fleet</string>
+    <string name="notify_start">Start fleet listener</string>
+    <string name="notify_stop">Stop fleet listener</string>
     <string name="browser_up">Up</string>
     <string name="browser_new_file">New file</string>
     <string name="browser_new_folder">New folder</string>

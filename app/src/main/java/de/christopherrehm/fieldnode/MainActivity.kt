@@ -29,6 +29,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var canaryStopButton: Button
     private lateinit var canaryRefreshButton: Button
     private lateinit var canaryStatus: TextView
+    private lateinit var notifyStartButton: Button
+    private lateinit var notifyStopButton: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,6 +45,8 @@ class MainActivity : AppCompatActivity() {
         canaryStopButton = findViewById(R.id.canary_stop_button)
         canaryRefreshButton = findViewById(R.id.canary_refresh_button)
         canaryStatus = findViewById(R.id.canary_status)
+        notifyStartButton = findViewById(R.id.notify_start_button)
+        notifyStopButton = findViewById(R.id.notify_stop_button)
 
         val canaryIntent = Intent(this, SurvivalCanaryService::class.java)
         grantButton.setOnClickListener { openAllFilesAccessSettings() }
@@ -58,6 +62,10 @@ class MainActivity : AppCompatActivity() {
             renderCanary()
         }
         canaryRefreshButton.setOnClickListener { renderCanary() }
+
+        val notifyIntent = Intent(this, NotifyService::class.java)
+        notifyStartButton.setOnClickListener { startForegroundService(notifyIntent) }
+        notifyStopButton.setOnClickListener { stopService(notifyIntent) }
     }
 
     override fun onResume() {
@@ -87,6 +95,8 @@ class MainActivity : AppCompatActivity() {
         canaryStartButton.visibility = visibility
         canaryStopButton.visibility = visibility
         canaryRefreshButton.visibility = visibility
+        notifyStartButton.visibility = visibility
+        notifyStopButton.visibility = visibility
     }
 
     /** Show the tail of the heartbeat log so survival is visible without leaving the app. */

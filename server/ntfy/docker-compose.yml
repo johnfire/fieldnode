@@ -1,0 +1,14 @@
+services:
+  ntfy:
+    image: binwiederhier/ntfy
+    container_name: ntfy
+    command: serve
+    restart: unless-stopped
+    # localhost-only; put Apache/TLS in front (a dedicated subdomain, e.g. ntfy.example.com).
+    ports:
+      - "127.0.0.1:8095:80"
+    volumes:
+      - ./server.yml:/etc/ntfy/server.yml
+      - ./data:/var/lib/ntfy
+    environment:
+      - TZ=Etc/UTC
