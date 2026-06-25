@@ -19,6 +19,7 @@
     <string name="open_agent">Talk to Fieldnode</string>
     <string name="agent_hint">Ask Fieldnode to do something…</string>
     <string name="agent_send">Send</string>
+    <string name="agent_voice">🎤</string>
     <string name="browser_up">Up</string>
     <string name="browser_new_file">New file</string>
     <string name="browser_new_folder">New folder</string>

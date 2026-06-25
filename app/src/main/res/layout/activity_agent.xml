@@ -36,6 +36,13 @@
             android:maxLines="4" />
 
         <Button
+            android:id="@+id/agent_voice"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="0dp"
+            android:text="@string/agent_voice" />
+
+        <Button
             android:id="@+id/agent_send"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

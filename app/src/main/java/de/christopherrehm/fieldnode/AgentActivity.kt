@@ -1,6 +1,9 @@
 package de.christopherrehm.fieldnode
 
+import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
+import android.speech.RecognizerIntent
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ScrollView
@@ -30,6 +33,7 @@ class AgentActivity : AppCompatActivity() {
     private lateinit var scroll: ScrollView
     private lateinit var input: EditText
     private lateinit var sendButton: Button
+    private lateinit var voiceButton: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,7 +42,34 @@ class AgentActivity : AppCompatActivity() {
         scroll = findViewById(R.id.transcript_scroll)
         input = findViewById(R.id.agent_input)
         sendButton = findViewById(R.id.agent_send)
+        voiceButton = findViewById(R.id.agent_voice)
         sendButton.setOnClickListener { send() }
+        voiceButton.setOnClickListener { startVoiceInput() }
+    }
+
+    /** Speak a command → the system recognizer transcribes it → send it straight to the agent. */
+    private fun startVoiceInput() {
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            putExtra(RecognizerIntent.EXTRA_PROMPT, "Tell Fieldnode what to do")
+        }
+        try {
+            startActivityForResult(intent, REQUEST_VOICE)
+        } catch (error: Exception) {
+            append("⚠️ Voice input unavailable: ${error.message}")
+        }
+    }
+
+    @Deprecated("startActivityForResult is fine for a single one-shot recognizer call")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == REQUEST_VOICE && resultCode == Activity.RESULT_OK) {
+            val spoken = data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()
+            if (!spoken.isNullOrBlank()) {
+                input.setText(spoken)
+                send()
+            }
+        }
     }
 
     private fun send() {
@@ -120,5 +151,6 @@ class AgentActivity : AppCompatActivity() {
 
     private companion object {
         const val MAX_STEPS = 8
+        const val REQUEST_VOICE = 7
     }
 }
