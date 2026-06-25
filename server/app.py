@@ -28,6 +28,19 @@ def health() -> dict:
     return {"ok": True, "service": "fieldnode-forwarder"}
 
 
+@app.post("/ack")
+async def ack(request: Request) -> dict:
+    # Notification action callback (one-tap approve/dismiss). The phone authenticates with its device
+    # token; the body says what was acknowledged. A real fleet would act on it (approve a draft, trigger
+    # a deploy…); here we record it so the round-trip is observable.
+    presented_token = request.headers.get("X-Device-Token", "")
+    if not hmac.compare_digest(presented_token, DEVICE_TOKEN):
+        raise HTTPException(status_code=401, detail="bad device token")
+    body = (await request.body()).decode("utf-8", "replace")
+    print(f"[ack] {body}", flush=True)
+    return {"ok": True, "ack": body}
+
+
 @app.post("/capture")
 async def capture(request: Request) -> dict:
     presented_token = request.headers.get("X-Device-Token", "")

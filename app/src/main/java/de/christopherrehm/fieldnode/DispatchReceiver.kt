@@ -9,20 +9,28 @@ import de.christopherrehm.fieldnode.dispatch.FleetClient
 import de.christopherrehm.fieldnode.dispatch.FleetConfig
 
 /**
- * Fires a dispatch of unsent captures on the `de.christopherrehm.fieldnode.DISPATCH` broadcast — so an
- * automation tool (or a test) can flush the queue without opening the app. Network runs on a worker
- * thread via goAsync(), never on the main thread.
+ * Fleet-control broadcasts, so automation (or a test) can drive Fieldnode without opening the app —
+ * even while locked:
+ *   - `…DISPATCH`      flush the capture queue to the fleet
+ *   - `…NOTIFY_START`  start the fleet-message listener
+ *   - `…NOTIFY_STOP`   stop it
  */
 class DispatchReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent?) {
-        if (intent?.action != ACTION_DISPATCH) return
+        when (intent?.action) {
+            ACTION_DISPATCH -> dispatchInBackground()
+            ACTION_NOTIFY_START -> context.startForegroundService(Intent(context, NotifyService::class.java))
+            ACTION_NOTIFY_STOP -> context.stopService(Intent(context, NotifyService::class.java))
+        }
+    }
+
+    private fun dispatchInBackground() {
         val pending = goAsync()
         Thread {
             try {
                 val config = FleetConfig.load() ?: return@Thread
-                val dispatcher = Dispatcher(CaptureStoreFactory.create(), FleetClient(config))
-                dispatcher.dispatchUnsent()
+                Dispatcher(CaptureStoreFactory.create(), FleetClient(config)).dispatchUnsent()
             } finally {
                 pending.finish()
             }
@@ -31,5 +39,7 @@ class DispatchReceiver : BroadcastReceiver() {
 
     companion object {
         const val ACTION_DISPATCH = "de.christopherrehm.fieldnode.DISPATCH"
+        const val ACTION_NOTIFY_START = "de.christopherrehm.fieldnode.NOTIFY_START"
+        const val ACTION_NOTIFY_STOP = "de.christopherrehm.fieldnode.NOTIFY_STOP"
     }
 }

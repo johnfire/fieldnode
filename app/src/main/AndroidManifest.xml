@@ -85,7 +85,14 @@
             android:enabled="true">
             <intent-filter>
                 <action android:name="de.christopherrehm.fieldnode.DISPATCH" />
+                <action android:name="de.christopherrehm.fieldnode.NOTIFY_START" />
+                <action android:name="de.christopherrehm.fieldnode.NOTIFY_STOP" />
             </intent-filter>
         </receiver>
+
+        <!-- Runs notification action buttons (one-tap approve). Internal only. -->
+        <receiver
+            android:name=".ActionReceiver"
+            android:exported="false" />
     </application>
 </manifest>

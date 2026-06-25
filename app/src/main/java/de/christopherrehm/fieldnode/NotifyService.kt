@@ -3,6 +3,7 @@ package de.christopherrehm.fieldnode
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
 import android.os.IBinder
@@ -99,14 +100,39 @@ class NotifyService : Service() {
     private fun showMessage(event: JSONObject) {
         val title = event.optString("title").ifBlank { "Fleet" }
         val body = event.optString("message")
-        val notification = NotificationCompat.Builder(this, MESSAGE_CHANNEL_ID)
+        val notificationId = nextMessageId++
+
+        val builder = NotificationCompat.Builder(this, MESSAGE_CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
             .setSmallIcon(android.R.drawable.ic_dialog_email)
             .setAutoCancel(true)
-            .build()
-        manager().notify(nextMessageId++, notification)
+
+        addActions(builder, event.optJSONArray("actions"), notificationId)
+        manager().notify(notificationId, builder.build())
+    }
+
+    /** Turn ntfy "http" actions into notification buttons handled by [ActionReceiver]. */
+    private fun addActions(builder: NotificationCompat.Builder, actions: org.json.JSONArray?, notificationId: Int) {
+        if (actions == null) return
+        for (index in 0 until actions.length()) {
+            val action = actions.optJSONObject(index) ?: continue
+            if (action.optString("action") != "http") continue
+            val intent = Intent(this, ActionReceiver::class.java).apply {
+                putExtra(ActionReceiver.EXTRA_URL, action.optString("url"))
+                putExtra(ActionReceiver.EXTRA_METHOD, action.optString("method", "POST"))
+                putExtra(ActionReceiver.EXTRA_BODY, action.optString("body"))
+                putExtra(ActionReceiver.EXTRA_NOTIFICATION_ID, notificationId)
+            }
+            val pendingIntent = PendingIntent.getBroadcast(
+                this,
+                notificationId * 10 + index,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
+            builder.addAction(0, action.optString("label", "Action"), pendingIntent)
+        }
     }
 
     private fun statusNotification(): Notification =
