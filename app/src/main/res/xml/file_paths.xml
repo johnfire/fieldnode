@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Lets FileProvider mint content:// URIs for files anywhere on shared storage, so the file
+     engine can hand a file to the system share sheet (Quick Share / Bluetooth / etc.). -->
+<paths>
+    <external-path name="external_storage" path="." />
+</paths>

@@ -1,8 +1,10 @@
 package de.christopherrehm.fieldnode
 
 import android.app.AlertDialog
+import android.content.Intent
 import android.os.Bundle
 import android.os.Environment
+import androidx.core.content.FileProvider
 import android.text.InputType
 import android.view.View
 import android.view.ViewGroup
@@ -119,17 +121,36 @@ class FileBrowserActivity : AppCompatActivity() {
     // --- per-file actions ------------------------------------------------------------------------
 
     private fun showFileActions(file: File) {
-        val actions = arrayOf("View", "Rename", "Delete")
+        val actions = arrayOf("View", "Share", "Rename", "Delete")
         AlertDialog.Builder(this)
             .setTitle(file.name)
             .setItems(actions) { _, which ->
                 when (which) {
                     0 -> viewFile(file)
-                    1 -> promptRename(file)
-                    2 -> confirmDelete(file)
+                    1 -> shareFile(file)
+                    2 -> promptRename(file)
+                    3 -> confirmDelete(file)
                 }
             }
             .show()
+    }
+
+    /**
+     * v2 share-out: hand the file to the system share sheet (Quick Share / Bluetooth / anything),
+     * so it can go to someone else's device. The agent assembles; the OS does the last hop on a tap.
+     */
+    private fun shareFile(file: File) {
+        try {
+            val uri = FileProvider.getUriForFile(this, "$packageName.fileprovider", file)
+            val send = Intent(Intent.ACTION_SEND).apply {
+                type = contentResolver.getType(uri) ?: "application/octet-stream"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            startActivity(Intent.createChooser(send, "Share ${file.name}"))
+        } catch (error: Exception) {
+            toast("Can't share: ${error.message}")
+        }
     }
 
     private fun viewFile(file: File) {
