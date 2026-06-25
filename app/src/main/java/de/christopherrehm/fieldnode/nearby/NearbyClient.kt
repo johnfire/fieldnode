@@ -13,7 +13,11 @@ data class Lead(
     val distanceM: Int,
     val phone: String,
     val mapsUri: String,
-)
+    val lat: Double,
+    val lng: Double,
+) {
+    val hasCoords: Boolean get() = lat.isFinite() && lng.isFinite()
+}
 
 /** Asks the forwarder "what leads are near (lat,lng)?" with the device token. Blocking. */
 class NearbyClient(private val config: FleetConfig) {
@@ -41,6 +45,8 @@ class NearbyClient(private val config: FleetConfig) {
                 distanceM = entry.optInt("distance_m"),
                 phone = entry.optString("phone"),
                 mapsUri = entry.optString("maps_uri"),
+                lat = entry.optDouble("lat", Double.NaN),
+                lng = entry.optDouble("lng", Double.NaN),
             )
         }
     }

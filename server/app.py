@@ -13,6 +13,10 @@ import time
 
 import httpx
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import Response
+from starlette.concurrency import run_in_threadpool
+
+import maprender
 
 DEVICE_TOKEN = os.environ["FIELDNODE_DEVICE_TOKEN"]
 BRAIN_URL = os.environ["OPEN_BRAIN_MCP_URL"]
@@ -57,33 +61,46 @@ async def _engcrm_token(client: httpx.AsyncClient, force: bool = False) -> str:
     return token
 
 
-@app.get("/nearby")
-async def nearby(request: Request, lat: float, lng: float, limit: int = 10) -> dict:
+def _require_token(request: Request) -> None:
     presented_token = request.headers.get("X-Device-Token", "")
     if not hmac.compare_digest(presented_token, DEVICE_TOKEN):
         raise HTTPException(status_code=401, detail="bad device token")
+
+
+def _require_engcrm() -> None:
     if not (ENGCRM_URL and ENGCRM_EMAIL and ENGCRM_PASSWORD):
         raise HTTPException(status_code=503, detail="engcrm not configured")
 
+
+async def _fetch_leads(lat: float, lng: float, limit: int) -> list:
+    """Raw engcrm recon leads near (lat,lng), with a one-shot token refresh on 401. Shared by the
+    JSON list (/nearby) and the rendered map (/nearby/map.png)."""
     params = {"lat": lat, "lng": lng, "limit": max(1, min(limit, 50))}
-    try:
-        async with httpx.AsyncClient(timeout=20) as client:
-            token = await _engcrm_token(client)
+    async with httpx.AsyncClient(timeout=20) as client:
+        token = await _engcrm_token(client)
+        response = await client.get(
+            f"{ENGCRM_URL}/api/recon", params=params,
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        if response.status_code == 401:  # token expired/revoked — refresh once and retry
+            token = await _engcrm_token(client, force=True)
             response = await client.get(
                 f"{ENGCRM_URL}/api/recon", params=params,
                 headers={"Authorization": f"Bearer {token}"},
             )
-            if response.status_code == 401:  # token expired/revoked — refresh once and retry
-                token = await _engcrm_token(client, force=True)
-                response = await client.get(
-                    f"{ENGCRM_URL}/api/recon", params=params,
-                    headers={"Authorization": f"Bearer {token}"},
-                )
-            response.raise_for_status()
+        response.raise_for_status()
+    return response.json()
+
+
+@app.get("/nearby")
+async def nearby(request: Request, lat: float, lng: float, limit: int = 10) -> dict:
+    _require_token(request)
+    _require_engcrm()
+    try:
+        leads = await _fetch_leads(lat, lng, limit)
     except httpx.HTTPError as error:
         raise HTTPException(status_code=502, detail=f"engcrm error: {error}")
 
-    leads = response.json()
     return {
         "leads": [
             {
@@ -93,10 +110,32 @@ async def nearby(request: Request, lat: float, lng: float, limit: int = 10) -> d
                 "distance_m": round(lead.get("distance_m") or 0),
                 "phone": lead.get("phone"),
                 "maps_uri": lead.get("maps_uri"),
+                "lat": lead.get("latitude"),
+                "lng": lead.get("longitude"),
             }
             for lead in leads
         ],
     }
+
+
+@app.get("/nearby/map.png")
+async def nearby_map(request: Request, lat: float, lng: float, limit: int = 10) -> Response:
+    # A static map of the leads near (lat,lng): the phone's location + a numbered pin per lead, rendered
+    # server-side from OpenStreetMap tiles (no map API key). Pin numbers match /nearby's order.
+    _require_token(request)
+    _require_engcrm()
+    try:
+        leads = await _fetch_leads(lat, lng, limit)
+    except httpx.HTTPError as error:
+        raise HTTPException(status_code=502, detail=f"engcrm error: {error}")
+
+    points = [
+        (lead["latitude"], lead["longitude"])
+        for lead in leads
+        if lead.get("latitude") is not None and lead.get("longitude") is not None
+    ]
+    png = await run_in_threadpool(maprender.render_leads_map, (lat, lng), points)
+    return Response(content=png, media_type="image/png", headers={"Cache-Control": "no-store"})
 
 
 @app.post("/agent")
