@@ -13,6 +13,9 @@
     <string name="dispatch_button">Dispatch to fleet</string>
     <string name="notify_start">Start fleet listener</string>
     <string name="notify_stop">Stop fleet listener</string>
+    <string name="open_nearby">Leads near me</string>
+    <string name="nearby_find">Find leads near me</string>
+    <string name="nearby_hint">Surfaces engcrm leads near your current location.</string>
     <string name="browser_up">Up</string>
     <string name="browser_new_file">New file</string>
     <string name="browser_new_folder">New folder</string>

@@ -22,6 +22,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var status: TextView
     private lateinit var grantButton: Button
     private lateinit var capturesButton: Button
+    private lateinit var nearbyButton: Button
     private lateinit var browserButton: Button
     private lateinit var selfTestButton: Button
     private lateinit var selfTestOutput: TextView
@@ -38,6 +39,7 @@ class MainActivity : AppCompatActivity() {
         status = findViewById(R.id.status)
         grantButton = findViewById(R.id.grant_button)
         capturesButton = findViewById(R.id.captures_button)
+        nearbyButton = findViewById(R.id.nearby_button)
         browserButton = findViewById(R.id.browser_button)
         selfTestButton = findViewById(R.id.selftest_button)
         selfTestOutput = findViewById(R.id.selftest_output)
@@ -51,6 +53,7 @@ class MainActivity : AppCompatActivity() {
         val canaryIntent = Intent(this, SurvivalCanaryService::class.java)
         grantButton.setOnClickListener { openAllFilesAccessSettings() }
         capturesButton.setOnClickListener { startActivity(Intent(this, CapturesActivity::class.java)) }
+        nearbyButton.setOnClickListener { startActivity(Intent(this, NearbyActivity::class.java)) }
         browserButton.setOnClickListener { startActivity(Intent(this, FileBrowserActivity::class.java)) }
         selfTestButton.setOnClickListener { selfTestOutput.text = FileEngineSelfTest.run() }
         canaryStartButton.setOnClickListener {
@@ -90,6 +93,7 @@ class MainActivity : AppCompatActivity() {
         val visibility = if (granted) View.VISIBLE else View.GONE
         grantButton.visibility = if (granted) View.GONE else View.VISIBLE
         capturesButton.visibility = visibility
+        nearbyButton.visibility = visibility
         browserButton.visibility = visibility
         selfTestButton.visibility = visibility
         canaryStartButton.visibility = visibility

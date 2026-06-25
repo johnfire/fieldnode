@@ -13,6 +13,10 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
+    <!-- On-site awareness (v2b): foreground location to find leads near the phone. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
     <!-- Phone posts captures to the fleet over the network (HTTPS in prod). -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -42,6 +46,11 @@
             android:name=".CapturesActivity"
             android:exported="false"
             android:label="@string/open_captures" />
+
+        <activity
+            android:name=".NearbyActivity"
+            android:exported="false"
+            android:label="@string/open_nearby" />
 
         <!-- Share target: receive text / images from any app into the capture queue. -->
         <activity

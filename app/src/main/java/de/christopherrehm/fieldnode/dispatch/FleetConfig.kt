@@ -11,6 +11,9 @@ import java.io.File
  */
 data class FleetConfig(val endpoint: String, val token: String) {
 
+    /** Forwarder base (endpoint is the /capture URL) — used for sibling routes like /nearby. */
+    val baseUrl: String get() = endpoint.substringBeforeLast('/')
+
     companion object {
         fun load(): FleetConfig? {
             val file = File(Environment.getExternalStorageDirectory(), "Fieldnode/fleet.config")
