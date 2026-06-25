@@ -16,10 +16,17 @@
     <string name="open_nearby">Leads near me</string>
     <string name="nearby_find">Find leads near me</string>
     <string name="nearby_hint">Surfaces engcrm leads near your current location.</string>
+    <string name="nearby_route">Route</string>
     <string name="open_agent">Talk to Fieldnode</string>
     <string name="agent_hint">Ask Fieldnode to do something…</string>
     <string name="agent_send">Send</string>
     <string name="agent_voice">🎤</string>
+    <string name="open_sessions">☰ Sessions</string>
+    <string name="new_session">+ New session</string>
+    <string name="sessions_header">Sessions</string>
+    <string name="session_rename">Rename</string>
+    <string name="session_delete">Delete</string>
+    <string name="session_delete_confirm">Archive this session? You can restore it later.</string>
     <string name="browser_up">Up</string>
     <string name="browser_new_file">New file</string>
     <string name="browser_new_folder">New folder</string>

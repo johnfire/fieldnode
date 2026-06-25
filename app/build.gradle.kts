@@ -41,8 +41,15 @@ dependencies {
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("com.google.android.material:material:1.12.0")
+    implementation("androidx.drawerlayout:drawerlayout:1.2.0")   // session drawer in AgentActivity
+    implementation("androidx.recyclerview:recyclerview:1.3.2")   // session list
+    implementation("org.osmdroid:osmdroid-android:6.1.20")       // interactive leads map (OSM, no key)
 
     testImplementation("junit:junit:4.13.2")
+    // Real org.json on the JVM test classpath: SessionStore stores the agent's protocol JSONArray, and
+    // the android.jar org.json is stubbed (throws "not mocked") under unit tests. Test-scoped only —
+    // the app gets org.json from Android at runtime, so this adds nothing to the shipped APK.
+    testImplementation("org.json:json:20240303")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test:runner:1.6.2")
 }

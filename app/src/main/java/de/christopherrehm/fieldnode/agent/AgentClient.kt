@@ -7,9 +7,9 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 /** One LLM turn via the forwarder's /agent proxy. Returns the assistant message (content + tool_calls). */
-class AgentClient(private val config: FleetConfig) {
+class AgentClient(private val config: FleetConfig) : AgentBrain {
 
-    fun complete(messages: JSONArray, tools: JSONArray): JSONObject {
+    override fun complete(messages: JSONArray, tools: JSONArray): JSONObject {
         val body = JSONObject().put("messages", messages).put("tools", tools).toString()
         val connection = (URL("${config.baseUrl}/agent").openConnection() as HttpURLConnection).apply {
             requestMethod = "POST"

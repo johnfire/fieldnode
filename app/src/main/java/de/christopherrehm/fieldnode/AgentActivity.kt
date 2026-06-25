@@ -8,27 +8,38 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.ScrollView
 import android.widget.TextView
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.GravityCompat
+import androidx.drawerlayout.widget.DrawerLayout
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import de.christopherrehm.fieldnode.agent.AgentClient
-import de.christopherrehm.fieldnode.agent.AgentTools
+import de.christopherrehm.fieldnode.agent.AgentRunner
 import de.christopherrehm.fieldnode.agent.ToolExecutor
 import de.christopherrehm.fieldnode.dispatch.FleetConfig
-import org.json.JSONArray
+import de.christopherrehm.fieldnode.session.SessionMeta
+import de.christopherrehm.fieldnode.session.SessionStore
+import de.christopherrehm.fieldnode.session.SessionStoreFactory
+import de.christopherrehm.fieldnode.session.SessionTitle
 import org.json.JSONObject
 
 /**
- * v3 on-phone agent: chat with an LLM that acts on the phone + fleet. The loop runs HERE (phone-side):
- * send the conversation to the forwarder's /agent proxy → get an assistant turn → if it has tool_calls,
- * run them via ToolExecutor (the caged FileEngine + capture + nearby), append results, and loop until
- * the model answers in plain text.
+ * v3 on-phone agent — a thin HOST over per-session conversations. The agent loop lives in [AgentRunner]
+ * (keyed by session id, persisting each turn); this Activity owns the current session, renders its
+ * transcript, drives the session drawer (create / switch / rename / archive), and runs a runner on a
+ * background Thread with itself as the listener. Swapping that Thread for a foreground service is
+ * feature A — nothing here has to change for it.
  */
 class AgentActivity : AppCompatActivity() {
 
     private val executor by lazy { ToolExecutor(applicationContext) }
-    private val messages = JSONArray().put(
-        JSONObject().put("role", "system").put("content", AgentTools.SYSTEM_PROMPT),
-    )
+    private val store: SessionStore by lazy { SessionStoreFactory.create() }
+    private lateinit var currentSessionId: String
 
+    private lateinit var drawer: DrawerLayout
+    private lateinit var sessionAdapter: SessionListAdapter
+    private lateinit var currentSessionLabel: TextView
     private lateinit var transcript: TextView
     private lateinit var scroll: ScrollView
     private lateinit var input: EditText
@@ -38,6 +49,8 @@ class AgentActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_agent)
+        drawer = findViewById(R.id.drawer)
+        currentSessionLabel = findViewById(R.id.current_session_title)
         transcript = findViewById(R.id.transcript)
         scroll = findViewById(R.id.transcript_scroll)
         input = findViewById(R.id.agent_input)
@@ -45,7 +58,113 @@ class AgentActivity : AppCompatActivity() {
         voiceButton = findViewById(R.id.agent_voice)
         sendButton.setOnClickListener { send() }
         voiceButton.setOnClickListener { startVoiceInput() }
+        findViewById<Button>(R.id.open_sessions).setOnClickListener { drawer.openDrawer(GravityCompat.START) }
+        findViewById<Button>(R.id.new_session).setOnClickListener { newSession() }
+
+        val list = findViewById<RecyclerView>(R.id.session_list)
+        list.layoutManager = LinearLayoutManager(this)
+        sessionAdapter = SessionListAdapter(emptyList(), "", { switchTo(it.id) }, { showSessionMenu(it) })
+        list.adapter = sessionAdapter
+
+        // First run seeds "Session 1"; otherwise resume the most-recently-updated thread.
+        currentSessionId = store.list().firstOrNull()?.id ?: store.create("Session 1").id
+        renderSession(currentSessionId)
+        refreshSessions()
     }
+
+    @Deprecated("onBackPressed is fine on targetSdk 30; predictive-back is API 33+")
+    override fun onBackPressed() {
+        if (drawer.isDrawerOpen(GravityCompat.START)) drawer.closeDrawer(GravityCompat.START)
+        else super.onBackPressed()
+    }
+
+    // --- session drawer --------------------------------------------------------------------------
+
+    private fun refreshSessions() {
+        sessionAdapter.submit(store.list(), currentSessionId)
+        currentSessionLabel.text = store.load(currentSessionId)?.title.orEmpty()
+    }
+
+    private fun switchTo(id: String) {
+        currentSessionId = id
+        renderSession(id)
+        refreshSessions()
+        drawer.closeDrawer(GravityCompat.START)
+    }
+
+    private fun newSession() {
+        val count = store.list(includeArchived = true).size
+        switchTo(store.create("Session ${count + 1}").id)
+    }
+
+    private fun showSessionMenu(meta: SessionMeta) {
+        val actions = arrayOf(getString(R.string.session_rename), getString(R.string.session_delete))
+        AlertDialog.Builder(this)
+            .setTitle(meta.title)
+            .setItems(actions) { _, which -> if (which == 0) renameSession(meta) else archiveSession(meta) }
+            .show()
+    }
+
+    private fun renameSession(meta: SessionMeta) {
+        val field = EditText(this).apply { setText(meta.title); setSelection(text.length) }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.session_rename)
+            .setView(field)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val name = field.text.toString().trim()
+                if (name.isNotEmpty()) {
+                    store.rename(meta.id, name)
+                    refreshSessions()
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun archiveSession(meta: SessionMeta) {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.session_delete)
+            .setMessage(R.string.session_delete_confirm)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                store.archive(meta.id)
+                if (meta.id == currentSessionId) {
+                    currentSessionId = store.list().firstOrNull()?.id ?: store.create("Session 1").id
+                    renderSession(currentSessionId)
+                }
+                refreshSessions()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    /** Re-derive the transcript view from a session's stored messages (the messages are the source). */
+    private fun renderSession(id: String) {
+        transcript.text = ""
+        val session = store.load(id) ?: return
+        val messages = session.messages
+        for (index in 0 until messages.length()) {
+            val message = messages.getJSONObject(index)
+            when (message.optString("role")) {
+                "user" -> append("You: ${message.optString("content")}")
+                "assistant" -> renderAssistant(message)
+                "tool" -> append("← ${message.optString("content").take(800)}")
+            }
+        }
+    }
+
+    private fun renderAssistant(message: JSONObject) {
+        val toolCalls = message.optJSONArray("tool_calls")
+        if (toolCalls != null) {
+            for (index in 0 until toolCalls.length()) {
+                val function = toolCalls.getJSONObject(index).getJSONObject("function")
+                append("→ ${function.optString("name")}(${function.optString("arguments")})")
+            }
+        }
+        val content = message.optString("content")
+        if (content.isNotBlank()) append("Fieldnode: $content")
+    }
+
+    // --- voice + send ----------------------------------------------------------------------------
 
     /** Speak a command → the system recognizer transcribes it → send it straight to the agent. */
     private fun startVoiceInput() {
@@ -82,66 +201,37 @@ class AgentActivity : AppCompatActivity() {
         }
         input.setText("")
         append("You: $text")
-        messages.put(JSONObject().put("role", "user").put("content", text))
+
+        // Title an untitled thread from its first message (decision #3).
+        val isFirstTurn = (store.load(currentSessionId)?.messages?.length() ?: 0) == 0
+        store.appendMessage(currentSessionId, JSONObject().put("role", "user").put("content", text))
+        if (isFirstTurn) store.rename(currentSessionId, SessionTitle.fromMessage(text))
+        refreshSessions()
+
         sendButton.isEnabled = false
-        runLoop(config)
+        val sessionId = currentSessionId
+        val brain = AgentClient(config)
+        Thread { AgentRunner(sessionId, store, brain, executor, uiListener).run() }.start()
     }
 
-    private fun runLoop(config: FleetConfig) {
-        val client = AgentClient(config)
-        val tools = AgentTools.tools()
-        Thread {
-            try {
-                var step = 0
-                while (step++ < MAX_STEPS) {
-                    val assistant = client.complete(messages, tools)
-                    messages.put(cleanAssistant(assistant))
-                    val toolCalls = assistant.optJSONArray("tool_calls")
-                    if (toolCalls == null || toolCalls.length() == 0) {
-                        val content = assistant.optString("content").ifBlank { "(no reply)" }
-                        runOnUiThread { append("Fieldnode: $content") }
-                        break
-                    }
-                    for (index in 0 until toolCalls.length()) {
-                        val call = toolCalls.getJSONObject(index)
-                        val function = call.getJSONObject("function")
-                        val toolName = function.optString("name")
-                        val rawArgs = function.optString("arguments").ifBlank { "{}" }
-                        val parsedArgs = runCatching { JSONObject(rawArgs) }.getOrDefault(JSONObject())
-                        runOnUiThread { append("→ $toolName($rawArgs)") }
-                        val result = executor.run(toolName, parsedArgs)
-                        runOnUiThread { append("← ${result.take(800)}") }
-                        messages.put(
-                            JSONObject().put("role", "tool")
-                                .put("tool_call_id", call.optString("id"))
-                                .put("content", result),
-                        )
-                    }
-                }
-            } catch (error: Exception) {
-                runOnUiThread { append("⚠️ ${error.message}") }
-            } finally {
-                runOnUiThread { sendButton.isEnabled = true }
-            }
-        }.start()
-    }
+    /** Bridges runner events onto the UI thread — the B host's listener. */
+    private val uiListener = object : AgentRunner.Listener {
+        override fun onToolCall(name: String, argsJson: String) =
+            runOnUiThread { append("→ $name($argsJson)") }
 
-    /** Echo the assistant turn back stripped to what the protocol needs (role, content, tool_calls). */
-    private fun cleanAssistant(message: JSONObject): JSONObject {
-        val cleaned = JSONObject().put("role", "assistant").put("content", message.optString("content"))
-        val toolCalls = message.optJSONArray("tool_calls") ?: return cleaned
-        val rebuilt = JSONArray()
-        for (index in 0 until toolCalls.length()) {
-            val call = toolCalls.getJSONObject(index)
-            val function = call.getJSONObject("function")
-            rebuilt.put(
-                JSONObject().put("id", call.optString("id")).put("type", "function").put(
-                    "function",
-                    JSONObject().put("name", function.optString("name")).put("arguments", function.optString("arguments")),
-                ),
-            )
+        override fun onToolResult(name: String, result: String) =
+            runOnUiThread { append("← ${result.take(800)}") }
+
+        override fun onAssistantText(text: String) =
+            runOnUiThread { append("Fieldnode: $text") }
+
+        override fun onError(message: String) =
+            runOnUiThread { append("⚠️ $message") }
+
+        override fun onFinished() = runOnUiThread {
+            sendButton.isEnabled = true
+            refreshSessions()
         }
-        return cleaned.put("tool_calls", rebuilt)
     }
 
     private fun append(line: String) {
@@ -150,7 +240,6 @@ class AgentActivity : AppCompatActivity() {
     }
 
     private companion object {
-        const val MAX_STEPS = 8
         const val REQUEST_VOICE = 7
     }
 }

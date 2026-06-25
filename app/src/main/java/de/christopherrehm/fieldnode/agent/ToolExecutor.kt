@@ -16,12 +16,12 @@ import java.io.File
  * Executes the agent's tool calls on the phone. File mutations go through the SAME caged FileEngine
  * (scope-gated, trash-not-rm, logged) — so the on-device agent inherits the safety layer built in v0.
  */
-class ToolExecutor(private val context: Context) {
+class ToolExecutor(private val context: Context) : ToolRunner {
 
     private val engine = FileEngineFactory.create()
     private val captures = CaptureStoreFactory.create()
 
-    fun run(name: String, args: JSONObject): String = try {
+    override fun run(name: String, args: JSONObject): String = try {
         when (name) {
             "writable_scope" -> engine.writableScope()
             "list_files" -> engine.list(File(args.getString("path")))
