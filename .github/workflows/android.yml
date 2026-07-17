@@ -43,7 +43,7 @@ jobs:
           java-version: "17"
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
 
       # Separate steps so a failure names which gate broke (style vs lint vs tests vs build),
       # rather than one combined invocation hiding the later results.
