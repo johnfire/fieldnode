@@ -1,9 +1,9 @@
 package de.christopherrehm.fieldnode.dispatch
 
 import de.christopherrehm.fieldnode.capture.Capture
-import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
+import org.json.JSONObject
 
 /**
  * Posts one capture to the fleet endpoint as JSON, with the device token in a header. Plain

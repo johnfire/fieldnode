@@ -1,9 +1,9 @@
 package de.christopherrehm.fieldnode.session
 
-import org.json.JSONArray
-import org.json.JSONObject
 import java.io.File
 import java.util.Base64
+import org.json.JSONArray
+import org.json.JSONObject
 
 /**
  * Persistence for agent conversation threads. One file per session (`<id>.session`, a JSON object) plus

@@ -1,10 +1,10 @@
 package de.christopherrehm.fieldnode.agent
 
 import de.christopherrehm.fieldnode.dispatch.FleetConfig
-import org.json.JSONArray
-import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
+import org.json.JSONArray
+import org.json.JSONObject
 
 /** One LLM turn via the forwarder's /agent proxy. Returns the assistant message (content + tool_calls). */
 class AgentClient(private val config: FleetConfig) : AgentBrain {

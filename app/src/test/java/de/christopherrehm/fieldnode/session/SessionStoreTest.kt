@@ -1,13 +1,13 @@
 package de.christopherrehm.fieldnode.session
 
+import java.io.File
+import java.nio.file.Files
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.io.File
-import java.nio.file.Files
 
 class SessionStoreTest {
 
@@ -49,9 +49,12 @@ class SessionStoreTest {
     }
 
     @Test fun listIsNewestUpdatedFirst() {
-        clock = 100; val a = store.create("a")
-        clock = 200; val b = store.create("b")
-        clock = 300; store.appendMessage(a.id, userTurn("bump a")) // a becomes most-recently-updated
+        clock = 100
+        val a = store.create("a")
+        clock = 200
+        val b = store.create("b")
+        clock = 300
+        store.appendMessage(a.id, userTurn("bump a")) // a becomes most-recently-updated
         assertEquals(listOf(a.id, b.id), store.list().map { it.id })
     }
 
@@ -91,7 +94,9 @@ class SessionStoreTest {
     }
 
     @Test fun rebuildIndexReconstructsFromSessionFiles() {
-        val a = store.create("a"); clock = 2000; val b = store.create("b")
+        val a = store.create("a")
+        clock = 2000
+        val b = store.create("b")
         File(dir, "index").delete()                         // lose the cache
         store.rebuildIndex()
         assertEquals(setOf(a.id, b.id), store.list().map { it.id }.toSet())

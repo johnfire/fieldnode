@@ -1,14 +1,13 @@
 package de.christopherrehm.fieldnode.agent
 
 import de.christopherrehm.fieldnode.session.SessionStore
+import java.nio.file.Files
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.io.File
-import java.nio.file.Files
 
 class AgentRunnerTest {
 
@@ -30,29 +29,42 @@ class AgentRunnerTest {
     private class FakeExecutor(private val result: String) : ToolRunner {
         val calls = mutableListOf<String>()
         override fun run(name: String, args: JSONObject): String {
-            calls.add(name); return result
+            calls.add(name)
+            return result
         }
     }
 
     private class RecordingListener : AgentRunner.Listener {
         val events = mutableListOf<String>()
-        override fun onToolCall(name: String, argsJson: String) { events.add("call:$name:$argsJson") }
-        override fun onToolResult(name: String, result: String) { events.add("result:$name") }
-        override fun onAssistantText(text: String) { events.add("text:$text") }
-        override fun onError(message: String) { events.add("error:$message") }
-        override fun onFinished() { events.add("finished") }
+        override fun onToolCall(name: String, argsJson: String) {
+            events.add("call:$name:$argsJson")
+        }
+        override fun onToolResult(name: String, result: String) {
+            events.add("result:$name")
+        }
+        override fun onAssistantText(text: String) {
+            events.add("text:$text")
+        }
+        override fun onError(message: String) {
+            events.add("error:$message")
+        }
+        override fun onFinished() {
+            events.add("finished")
+        }
     }
 
-    private fun assistantText(text: String) =
-        JSONObject().put("role", "assistant").put("content", text)
+    private fun assistantText(text: String) = JSONObject().put("role", "assistant").put("content", text)
 
     private fun assistantToolCall(id: String, name: String, args: String) = JSONObject()
         .put("role", "assistant")
         .put("content", "")
-        .put("tool_calls", JSONArray().put(
-            JSONObject().put("id", id).put("type", "function")
-                .put("function", JSONObject().put("name", name).put("arguments", args)),
-        ))
+        .put(
+            "tool_calls",
+            JSONArray().put(
+                JSONObject().put("id", id).put("type", "function")
+                    .put("function", JSONObject().put("name", name).put("arguments", args)),
+            )
+        )
 
     private fun userTurn(text: String) = JSONObject().put("role", "user").put("content", text)
 
@@ -61,17 +73,28 @@ class AgentRunnerTest {
     @Test fun persistsEveryTurnInOrder() {
         val session = store.create("t")
         store.appendMessage(session.id, userTurn("organize my files"))
-        val brain = FakeBrain(mutableListOf(
-            assistantToolCall("c1", "list_files", """{"path":"/x"}"""),
-            assistantText("done"),
-        ))
+        val brain = FakeBrain(
+            mutableListOf(
+                assistantToolCall("c1", "list_files", """{"path":"/x"}"""),
+                assistantText("done"),
+            )
+        )
         val listener = RecordingListener()
-        AgentRunner(session.id, store, brain, FakeExecutor("two files"), listener,
-            systemPrompt = "SYS", tools = JSONArray()).run()
+        AgentRunner(
+            session.id,
+            store,
+            brain,
+            FakeExecutor("two files"),
+            listener,
+            systemPrompt = "SYS",
+            tools = JSONArray()
+        ).run()
 
         val messages = store.load(session.id)!!.messages
-        assertEquals(listOf("user", "assistant", "tool", "assistant"),
-            (0 until messages.length()).map { messages.getJSONObject(it).getString("role") })
+        assertEquals(
+            listOf("user", "assistant", "tool", "assistant"),
+            (0 until messages.length()).map { messages.getJSONObject(it).getString("role") }
+        )
         assertEquals("two files", messages.getJSONObject(2).getString("content"))     // tool result persisted
         assertEquals("done", messages.getJSONObject(3).getString("content"))
         assertEquals(
@@ -95,22 +118,37 @@ class AgentRunnerTest {
         val session = store.create("t")
         store.appendMessage(session.id, userTurn("hi"))
         val brain = FakeBrain(mutableListOf(assistantText("ok")))
-        AgentRunner(session.id, store, brain, FakeExecutor("x"), RecordingListener(),
-            systemPrompt = "FRESH-PROMPT", tools = JSONArray()).run()
+        AgentRunner(
+            session.id,
+            store,
+            brain,
+            FakeExecutor("x"),
+            RecordingListener(),
+            systemPrompt = "FRESH-PROMPT",
+            tools = JSONArray()
+        ).run()
 
         val firstContext = brain.seen.first()
         assertEquals("system", firstContext.getJSONObject(0).getString("role"))
         assertEquals("FRESH-PROMPT", firstContext.getJSONObject(0).getString("content"))
         // The system turn is re-injected, never stored.
-        assertTrue((0 until store.load(session.id)!!.messages.length()).none {
-            store.load(session.id)!!.messages.getJSONObject(it).getString("role") == "system"
-        })
+        assertTrue(
+            (0 until store.load(session.id)!!.messages.length()).none {
+                store.load(session.id)!!.messages.getJSONObject(it).getString("role") == "system"
+            }
+        )
     }
 
     @Test fun missingSessionReportsErrorAndFinishes() {
         val listener = RecordingListener()
-        AgentRunner("nope", store, FakeBrain(mutableListOf()), FakeExecutor("x"), listener,
-            tools = JSONArray()).run()
+        AgentRunner(
+            "nope",
+            store,
+            FakeBrain(mutableListOf()),
+            FakeExecutor("x"),
+            listener,
+            tools = JSONArray()
+        ).run()
         assertEquals(listOf("error:session not found", "finished"), listener.events)
     }
 
@@ -123,13 +161,23 @@ class AgentRunnerTest {
         val cap = 100                                            // only the last user round fits
         val brain = FakeBrain(mutableListOf(assistantText("ok")))
 
-        AgentRunner(session.id, store, brain, FakeExecutor("x"), RecordingListener(),
-            systemPrompt = "SYS", tools = JSONArray(), cap = cap).run()
+        AgentRunner(
+            session.id,
+            store,
+            brain,
+            FakeExecutor("x"),
+            RecordingListener(),
+            systemPrompt = "SYS",
+            tools = JSONArray(),
+            cap = cap
+        ).run()
 
         val messages = store.load(session.id)!!.messages
         // Trimmed to [userB, assistant-final]; the older user/assistant round was dropped at the boundary.
-        assertEquals(listOf("user", "assistant"),
-            (0 until messages.length()).map { messages.getJSONObject(it).getString("role") })
+        assertEquals(
+            listOf("user", "assistant"),
+            (0 until messages.length()).map { messages.getJSONObject(it).getString("role") }
+        )
         assertTrue(messages.getJSONObject(0).getString("content").startsWith("B"))
         // The brain saw system + trimmed history (system + userB), not the dropped round.
         val firstContext = brain.seen.first()

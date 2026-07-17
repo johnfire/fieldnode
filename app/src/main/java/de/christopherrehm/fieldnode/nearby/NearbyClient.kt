@@ -1,9 +1,9 @@
 package de.christopherrehm.fieldnode.nearby
 
 import de.christopherrehm.fieldnode.dispatch.FleetConfig
-import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
+import org.json.JSONObject
 
 /** A lead near the phone, as returned by the forwarder's /nearby (which proxies engcrm recon). */
 data class Lead(

@@ -4,7 +4,6 @@ import android.app.AlertDialog
 import android.content.Intent
 import android.os.Bundle
 import android.os.Environment
-import androidx.core.content.FileProvider
 import android.text.InputType
 import android.view.View
 import android.view.ViewGroup
@@ -16,6 +15,7 @@ import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.FileProvider
 import com.google.android.material.snackbar.Snackbar
 import de.christopherrehm.fieldnode.file.FileEngineFactory
 import de.christopherrehm.fieldnode.file.FileOpResult

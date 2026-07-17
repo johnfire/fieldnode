@@ -1,0 +1,30 @@
+# ktlint config, scoped to what coding-standards.md section 11 actually asks for (unused
+# imports/variables, import grouping, consistent indentation, no unreachable code) rather than
+# ktlint's own opinionated line-wrapping/collapse formatter, which disagrees with this codebase's
+# existing — already consistent, already readable — choices about when to put a multi-line
+# constructor one-param-per-line vs. when to collapse a short function body onto its signature line.
+# Reformatting ~90 call sites to match a linter's formatting preference is not what "add lint" means;
+# the rules below keep the genuinely valuable checks and turn off the ones that would do that.
+root = true
+
+[*.{kt,kts}]
+indent_size = 4
+max_line_length = 140
+ktlint_code_style = android_studio
+
+# Intentional style choices already used throughout the codebase:
+ktlint_standard_no-multi-spaces = disabled                    # aligned inline comments (e.g. FleetConfig.kt)
+ktlint_standard_trailing-comma-on-call-site = disabled        # trailing commas in multi-line calls
+ktlint_standard_trailing-comma-on-declaration-site = disabled # trailing commas in multi-line constructors
+
+# Formatting/wrapping preferences ktlint's android_studio style disagrees with, but that are not
+# part of the documented coding standard (which is about hygiene, not one specific line-wrap style):
+ktlint_standard_function-signature = disabled       # e.g. `fun x(): T =\n    body` vs collapsing to one line
+ktlint_standard_class-signature = disabled          # multi-line constructor whitespace specifics
+ktlint_standard_argument-list-wrapping = disabled   # one-arg-per-line vs fits-on-one-line calls
+ktlint_standard_parameter-list-wrapping = disabled  # companion rule for lambda/fn parameters
+ktlint_standard_statement-wrapping = disabled       # terse one-line control flow / lambda bodies
+ktlint_standard_wrapping = disabled                 # general paren/brace newline placement
+ktlint_standard_multiline-if-else = disabled        # single-line if/else without braces
+ktlint_standard_property-wrapping = disabled        # multi-line property initializer wrapping
+ktlint_standard_function-literal = disabled         # lambda arrow/brace newline placement

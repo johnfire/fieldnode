@@ -9,12 +9,12 @@ import android.content.Intent
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import de.christopherrehm.fieldnode.notify.NotifyConfig
-import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.concurrent.atomic.AtomicBoolean
+import org.json.JSONObject
 
 /**
  * v1.5b notify-back: a foreground service that holds a streaming connection to the self-hosted ntfy

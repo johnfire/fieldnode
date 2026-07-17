@@ -1,13 +1,13 @@
 package de.christopherrehm.fieldnode.file
 
+import java.io.File
+import java.nio.file.Files
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.io.File
-import java.nio.file.Files
 
 class TrashStoreTest {
 
@@ -17,8 +17,7 @@ class TrashStoreTest {
     private var clock = 1_000L
     private val trash = TrashStore(trashDir, manifest) { clock }
 
-    private fun seedFile(name: String, content: String): File =
-        File(base, name).apply { writeText(content) }
+    private fun seedFile(name: String, content: String): File = File(base, name).apply { writeText(content) }
 
     @Test fun trashingMovesFileAndRecordsManifest() {
         val file = seedFile("doc.txt", "data")
