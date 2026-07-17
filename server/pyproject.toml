@@ -1,0 +1,7 @@
+# Ruff configuration for the forwarder. Pinned to the default ruleset (pyflakes + a core pycodestyle
+# subset) which the current code passes clean. Tightening this (import sorting, pyupgrade, bugbear,
+# line-length) is a deliberate later step — see AUDIT Phase 5 — because those rules would reformat
+# working code, which "set up CI" should not do silently.
+[tool.ruff]
+target-version = "py312"
+line-length = 120

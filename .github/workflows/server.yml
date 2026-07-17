@@ -1,0 +1,53 @@
+name: Server CI
+
+# Lint, dependency-audit, and (once they exist) test the Python forwarder.
+# The dependency audit is BLOCKING: a known CVE in server/requirements.txt fails the build
+# (coding-standards 10.4). Until the deps are patched this job is expected to be red.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "server/**"
+      - ".github/workflows/server.yml"
+  pull_request:
+    paths:
+      - "server/**"
+      - ".github/workflows/server.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install tooling
+        run: pip install ruff pip-audit
+
+      - name: Ruff lint
+        run: ruff check .
+
+      # Blocking: fail CI on any known-vulnerable pinned dependency.
+      - name: Dependency audit
+        run: pip-audit -r requirements.txt
+
+      # No server tests exist yet (Phase 3 of the audit). This step runs them automatically
+      # the moment a server/test_*.py file lands, and is a no-op until then.
+      - name: Tests
+        run: |
+          if ls test_*.py >/dev/null 2>&1; then
+            pip install pytest -r requirements.txt
+            python -m pytest
+          else
+            echo "No server tests yet — add server/test_*.py to enable this step."
+          fi

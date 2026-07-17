@@ -27,6 +27,15 @@ android {
         }
     }
 
+    lint {
+        // This app is sideloaded on purpose and never ships on Google Play, and targetSdk 30 is the
+        // deliberate floor that keeps the MANAGE_EXTERNAL_STORAGE grant flow simple. The Play-store
+        // "target a recent API level" gate therefore doesn't apply — every other lint check stays on.
+        disable += "ExpiredTargetSdkVersion"
+        abortOnError = true
+        warningsAsErrors = false
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
