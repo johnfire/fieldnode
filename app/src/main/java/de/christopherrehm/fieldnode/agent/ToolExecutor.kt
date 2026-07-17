@@ -6,6 +6,7 @@ import android.location.LocationManager
 import de.christopherrehm.fieldnode.capture.Capture
 import de.christopherrehm.fieldnode.capture.CaptureStoreFactory
 import de.christopherrehm.fieldnode.dispatch.FleetConfig
+import de.christopherrehm.fieldnode.file.Actor
 import de.christopherrehm.fieldnode.file.FileEngineFactory
 import de.christopherrehm.fieldnode.file.FileOpResult
 import de.christopherrehm.fieldnode.nearby.NearbyClient
@@ -15,10 +16,13 @@ import org.json.JSONObject
 /**
  * Executes the agent's tool calls on the phone. File mutations go through the SAME caged FileEngine
  * (scope-gated, trash-not-rm, logged) — so the on-device agent inherits the safety layer built in v0.
+ * The engine is constructed with [Actor.AI_AGENT], so every entry it writes — file mutation or, via
+ * [de.christopherrehm.fieldnode.file.FileEngine.recordAction], a non-file tool call — is attributed to
+ * the agent, never silently to "system" (coding-standards 7.6).
  */
 class ToolExecutor(private val context: Context) : ToolRunner {
 
-    private val engine = FileEngineFactory.create()
+    private val engine = FileEngineFactory.create(Actor.AI_AGENT)
     private val captures = CaptureStoreFactory.create()
 
     override fun run(name: String, args: JSONObject): String = try {
@@ -49,15 +53,22 @@ class ToolExecutor(private val context: Context) : ToolRunner {
     private fun captureNote(text: String): String {
         val id = System.currentTimeMillis().toString()
         captures.save(Capture(id, Capture.Kind.TEXT, text, null, id.toLong(), Capture.Status.PENDING))
+        engine.recordAction("capture_note", id, "OK", text.take(80))
         return "captured (pending dispatch)"
     }
 
     private fun findNearby(): String {
-        val config = FleetConfig.load() ?: return "no fleet.config set"
-        val location = lastKnownLocation() ?: return "no location fix available"
+        val config = FleetConfig.load() ?: return notFound("no fleet.config set")
+        val location = lastKnownLocation() ?: return notFound("no location fix available")
         val leads = NearbyClient(config).fetch(location.latitude, location.longitude, limit = 8)
+        engine.recordAction("find_nearby_leads", "${location.latitude},${location.longitude}", "OK", "${leads.size} leads")
         if (leads.isEmpty()) return "no leads nearby"
         return leads.joinToString("\n") { "${it.name} — ${it.distanceM} m (${it.type}, ${it.city})" }
+    }
+
+    private fun notFound(reason: String): String {
+        engine.recordAction("find_nearby_leads", "-", "FAILURE", reason)
+        return reason
     }
 
     private fun lastKnownLocation(): Location? {

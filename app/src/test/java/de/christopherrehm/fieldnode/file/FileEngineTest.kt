@@ -16,6 +16,7 @@ class FileEngineTest {
         scope = ScopePolicy(listOf(workspace)),
         log = ActionLog(File(base, "log.txt")),
         trash = TrashStore(File(base, "trash"), File(base, "trash/manifest.tsv")),
+        actor = Actor.USER,
     )
 
     @Test fun writeAndReadWithinScope() {
@@ -80,5 +81,19 @@ class FileEngineTest {
         assertTrue(engine.move(source, destination).ok)
         assertFalse(source.exists())
         assertEquals("x", engine.readText(destination))
+    }
+
+    @Test fun mutationsAreAttributedToTheEnginesActor() {
+        engine.writeText(File(workspace, "attributed.txt"), "x")
+
+        assertTrue("action log must name the actor, not just the operation", engine.actionLog().contains(Actor.USER))
+    }
+
+    @Test fun recordActionAttributesNonFileToolCallsToTheActor() {
+        engine.recordAction("capture_note", "note-1", "OK", "a note")
+
+        val logged = engine.actionLog()
+        assertTrue(logged.contains("capture_note"))
+        assertTrue(logged.contains(Actor.USER))
     }
 }

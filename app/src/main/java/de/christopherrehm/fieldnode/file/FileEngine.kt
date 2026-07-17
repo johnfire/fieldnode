@@ -4,14 +4,19 @@ import java.io.File
 
 /**
  * The single doorway for all file operations. Reads pass straight through; every MUTATION is
- * gated by [ScopePolicy], recorded in [ActionLog], and — when destructive — routed through
- * [TrashStore] instead of a raw delete. There is deliberately no method here that destroys bytes
- * directly: delete moves to trash, and overwrite trashes the prior version first.
+ * gated by [ScopePolicy], recorded in [ActionLog] against [actor], and — when destructive — routed
+ * through [TrashStore] instead of a raw delete. There is deliberately no method here that destroys
+ * bytes directly: delete moves to trash, and overwrite trashes the prior version first.
+ *
+ * [actor] is fixed for the instance's lifetime (coding-standards 7.6) — the debug UI constructs its
+ * engine with [Actor.USER], the on-phone agent with [Actor.AI_AGENT], so every entry this engine
+ * writes is attributed correctly without every call site having to say who's asking.
  */
 class FileEngine(
     private val scope: ScopePolicy,
     private val log: ActionLog,
     private val trash: TrashStore,
+    private val actor: String,
 ) {
     // --- reads (unrestricted) --------------------------------------------------------------------
 
@@ -29,6 +34,11 @@ class FileEngine(
     fun trashEntries(): List<TrashStore.Entry> = trash.entries()
 
     fun actionLog(): String = log.readAll()
+
+    /** Audit a non-file action this engine's actor took (e.g. an agent tool call with no file target),
+     * so the same append-only log covers everything the actor did, not just file mutations. */
+    fun recordAction(operation: String, target: String, outcome: String, detail: String = "") =
+        log.record(operation, target, outcome, actor, detail)
 
     // --- mutations (scope-gated + logged) --------------------------------------------------------
 
@@ -55,18 +65,21 @@ class FileEngine(
 
     fun move(source: File, destination: File): FileOpResult {
         if (!scope.canMutate(source) || !scope.canMutate(destination)) {
-            log.record("move", "${source.absolutePath} -> ${destination.absolutePath}", "BLOCKED", "out of scope")
+            log.record(
+                "move", "${source.absolutePath} -> ${destination.absolutePath}", "BLOCKED", actor,
+                "out of scope",
+            )
             return FileOpResult.Blocked("Move needs both ends in a writable scope")
         }
         if (!source.exists()) {
-            log.record("move", source.absolutePath, "FAILURE", "source missing")
+            log.record("move", source.absolutePath, "FAILURE", actor, "source missing")
             return FileOpResult.Failure("No such file: ${source.absolutePath}")
         }
         if (destination.exists()) trash.trash(destination)
         destination.parentFile?.mkdirs()
         val moved = source.renameTo(destination) || copyThenDelete(source, destination)
         val outcome = if (moved) "MOVED" else "FAILURE"
-        log.record("move", "${source.absolutePath} -> ${destination.absolutePath}", outcome)
+        log.record("move", "${source.absolutePath} -> ${destination.absolutePath}", outcome, actor)
         return if (moved) {
             FileOpResult.Success("Moved to ${destination.absolutePath}")
         } else {
@@ -93,13 +106,13 @@ class FileEngine(
 
     fun restore(trashId: String): FileOpResult {
         val restored = trash.restore(trashId)
-        log.record("restore", trashId, if (restored) "RESTORED" else "FAILURE")
+        log.record("restore", trashId, if (restored) "RESTORED" else "FAILURE", actor)
         return if (restored) FileOpResult.Success("Restored $trashId") else FileOpResult.Failure("Could not restore $trashId")
     }
 
     fun emptyExpired(ttlMillis: Long): FileOpResult {
         val purged = trash.sweepExpired(ttlMillis)
-        log.record("sweep", "trash", "PURGED", "$purged entries")
+        log.record("sweep", "trash", "PURGED", actor, "$purged entries")
         return FileOpResult.Success("Purged $purged expired trash entries")
     }
 
@@ -108,7 +121,7 @@ class FileEngine(
     /** Scope-check, run [action], log the outcome — the shared spine of every single-target mutation. */
     private inline fun guarded(operation: String, target: File, action: () -> FileOpResult): FileOpResult {
         if (!scope.canMutate(target)) {
-            log.record(operation, target.absolutePath, "BLOCKED", "out of scope")
+            log.record(operation, target.absolutePath, "BLOCKED", actor, "out of scope")
             return FileOpResult.Blocked("Not within a writable scope: ${target.absolutePath}")
         }
         val result = try {
@@ -121,7 +134,7 @@ class FileEngine(
             is FileOpResult.Blocked -> "BLOCKED"
             is FileOpResult.Failure -> "FAILURE"
         }
-        log.record(operation, target.absolutePath, outcome, (result as? FileOpResult.Success)?.message ?: "")
+        log.record(operation, target.absolutePath, outcome, actor, (result as? FileOpResult.Success)?.message ?: "")
         return result
     }
 

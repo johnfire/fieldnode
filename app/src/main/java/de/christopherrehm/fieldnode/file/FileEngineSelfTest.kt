@@ -12,7 +12,7 @@ import java.io.File
 object FileEngineSelfTest {
 
     fun run(): String {
-        val engine = FileEngineFactory.create()
+        val engine = FileEngineFactory.create(Actor.USER) // a human tapping the self-test button
         val external = Environment.getExternalStorageDirectory()
         val scratch = File(external, "${FileEngineFactory.MANAGED_DIR_NAME}/selftest")
         val checks = mutableListOf<String>()

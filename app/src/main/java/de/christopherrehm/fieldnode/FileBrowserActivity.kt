@@ -17,6 +17,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
 import com.google.android.material.snackbar.Snackbar
+import de.christopherrehm.fieldnode.file.Actor
 import de.christopherrehm.fieldnode.file.FileEngineFactory
 import de.christopherrehm.fieldnode.file.FileOpResult
 import java.io.File
@@ -29,7 +30,7 @@ import java.io.File
  */
 class FileBrowserActivity : AppCompatActivity() {
 
-    private val engine = FileEngineFactory.create()
+    private val engine = FileEngineFactory.create(Actor.USER)
     private val storageRoot: File = Environment.getExternalStorageDirectory()
     private var currentDir: File = storageRoot
 

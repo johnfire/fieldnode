@@ -18,7 +18,9 @@ object FileEngineFactory {
 
     const val MANAGED_DIR_NAME = "Fieldnode"
 
-    fun create(): FileEngine {
+    /** [actor] identifies who this engine acts for (coding-standards 7.6) — pass [Actor.USER] or
+     * [Actor.AI_AGENT]; there's no default, so every caller must say which. */
+    fun create(actor: String): FileEngine {
         val external = Environment.getExternalStorageDirectory()
         val managed = File(external, MANAGED_DIR_NAME)
 
@@ -34,6 +36,6 @@ object FileEngineFactory {
                 File(external, "Documents"),
             ),
         )
-        return FileEngine(scope, log, trash)
+        return FileEngine(scope, log, trash, actor)
     }
 }
