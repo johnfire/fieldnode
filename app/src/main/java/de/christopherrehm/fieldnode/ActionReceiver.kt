@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import de.christopherrehm.fieldnode.dispatch.FleetConfig
+import de.christopherrehm.fieldnode.dispatch.FleetUrlPolicy
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -26,11 +27,18 @@ class ActionReceiver : BroadcastReceiver() {
         val pending = goAsync()
         Thread {
             try {
+                val config = FleetConfig.load()
+                // The action URL came from a fleet message (external data). Only ever call our own fleet
+                // host over https, and only then attach the device token — so a spoofed/rogue action can't
+                // exfiltrate the token or turn the phone into a request proxy. Anything else: refuse.
+                if (config == null || !FleetUrlPolicy.isTrustedFleetUrl(url, config.endpoint)) {
+                    return@Thread
+                }
                 val connection = (URL(url).openConnection() as HttpURLConnection).apply {
                     requestMethod = method
                     connectTimeout = 10_000
                     readTimeout = 15_000
-                    FleetConfig.load()?.let { setRequestProperty("X-Device-Token", it.token) }
+                    setRequestProperty("X-Device-Token", config.token)
                     if (method == "POST" || method == "PUT") {
                         doOutput = true
                         setRequestProperty("Content-Type", "text/plain")

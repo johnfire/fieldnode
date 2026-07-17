@@ -104,10 +104,15 @@
             </intent-filter>
         </receiver>
 
-        <!-- Flush the capture queue to the fleet on broadcast (automation / testing). -->
+        <!-- Fleet-control broadcasts (flush queue / start / stop the listener). NOT exported: any app on
+             the device could otherwise fire these. adb (the privileged shell) can still drive it with an
+             explicit component, e.g.
+               adb shell am broadcast -n de.christopherrehm.fieldnode/.DispatchReceiver \
+                 -a de.christopherrehm.fieldnode.DISPATCH
+             which is the intended automation path; third-party apps cannot target a non-exported receiver. -->
         <receiver
             android:name=".DispatchReceiver"
-            android:exported="true"
+            android:exported="false"
             android:enabled="true">
             <intent-filter>
                 <action android:name="de.christopherrehm.fieldnode.DISPATCH" />

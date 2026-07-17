@@ -85,7 +85,9 @@ endpoint=https://fieldnode.example.com/capture
 token=<your device token>
 ```
 
-(A broadcast `de.christopherrehm.fieldnode.DISPATCH` flushes the queue from automation tools.)
+(To flush the queue from automation, broadcast to the receiver explicitly — it's not exported, so
+only the privileged adb shell can reach it, not other apps:
+`adb shell am broadcast -n de.christopherrehm.fieldnode/.DispatchReceiver -a de.christopherrehm.fieldnode.DISPATCH`)
 
 ## A note from building this on a Redmi Note 8 Pro (MIUI)
 
