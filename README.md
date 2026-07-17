@@ -89,6 +89,13 @@ token=<your device token>
 only the privileged adb shell can reach it, not other apps:
 `adb shell am broadcast -n de.christopherrehm.fieldnode/.DispatchReceiver -a de.christopherrehm.fieldnode.DISPATCH`)
 
+> **Known trade-off:** `fleet.config` holds the device token and (if configured) the ntfy token in
+> plaintext under `/storage/emulated/0/Fieldnode/`, which is readable by any app holding storage
+> access — a conscious call to avoid building a settings screen before v0 proved the concept. Both
+> tokens are narrowly scoped (device token: post-captures-only, revocable; ntfy token: read-scoped to
+> one topic), which limits the blast radius of a leak, but this is not app-private storage. When a
+> settings screen lands, move this to app-private storage (`filesDir`) or `EncryptedSharedPreferences`.
+
 ## A note from building this on a Redmi Note 8 Pro (MIUI)
 
 The repo includes a Doze "survival canary" foreground service. Finding on stock MIUI 12.5.7: a
