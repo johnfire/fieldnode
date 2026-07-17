@@ -2,6 +2,7 @@ package de.christopherrehm.fieldnode.agent
 
 import de.christopherrehm.fieldnode.session.AgentSession
 import de.christopherrehm.fieldnode.session.SessionStore
+import java.util.UUID
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -40,6 +41,9 @@ class AgentRunner(
     }
 
     fun run() {
+        // One id for the whole run (coding-standards 7.5): every /agent call this run makes, however
+        // many steps it takes, shares it, so the server-side logs for one run can be traced as a unit.
+        val correlationId = UUID.randomUUID().toString()
         try {
             val session = store.load(sessionId)
             if (session == null) {
@@ -56,7 +60,7 @@ class AgentRunner(
 
             var step = 0
             while (step++ < maxSteps) {
-                val assistant = brain.complete(context, tools)
+                val assistant = brain.complete(context, tools, correlationId)
                 val cleaned = cleanAssistant(assistant)
                 context.put(cleaned)
                 store.appendMessage(sessionId, cleaned)

@@ -3,6 +3,7 @@ package de.christopherrehm.fieldnode.nearby
 import de.christopherrehm.fieldnode.dispatch.FleetConfig
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.UUID
 import org.json.JSONObject
 
 /** A lead near the phone, as returned by the forwarder's /nearby (which proxies engcrm recon). */
@@ -28,6 +29,8 @@ class NearbyClient(private val config: FleetConfig) {
             connectTimeout = 10_000
             readTimeout = 20_000
             setRequestProperty("X-Device-Token", config.token)
+            // Each lookup is its own unit of work (coding-standards 7.5) — mint a fresh id per call.
+            setRequestProperty("X-Correlation-Id", UUID.randomUUID().toString())
         }
         val code = connection.responseCode
         val stream = if (code in 200..299) connection.inputStream else connection.errorStream

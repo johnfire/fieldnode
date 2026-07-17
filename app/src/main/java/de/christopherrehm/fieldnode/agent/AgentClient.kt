@@ -9,7 +9,7 @@ import org.json.JSONObject
 /** One LLM turn via the forwarder's /agent proxy. Returns the assistant message (content + tool_calls). */
 class AgentClient(private val config: FleetConfig) : AgentBrain {
 
-    override fun complete(messages: JSONArray, tools: JSONArray): JSONObject {
+    override fun complete(messages: JSONArray, tools: JSONArray, correlationId: String): JSONObject {
         val body = JSONObject().put("messages", messages).put("tools", tools).toString()
         val connection = (URL("${config.baseUrl}/agent").openConnection() as HttpURLConnection).apply {
             requestMethod = "POST"
@@ -18,6 +18,7 @@ class AgentClient(private val config: FleetConfig) : AgentBrain {
             doOutput = true
             setRequestProperty("Content-Type", "application/json")
             setRequestProperty("X-Device-Token", config.token)
+            setRequestProperty("X-Correlation-Id", correlationId)
         }
         connection.outputStream.use { it.write(body.toByteArray()) }
         val code = connection.responseCode

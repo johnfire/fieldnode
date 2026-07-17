@@ -27,6 +27,9 @@ class FleetClient(private val config: FleetConfig) {
                 doOutput = true
                 setRequestProperty("Content-Type", "application/json")
                 setRequestProperty("X-Device-Token", config.token)
+                // capture.id is already a unique per-work-item id (coding-standards 7.5): reuse it as
+                // the correlation id so this capture is traceable through the forwarder's logs.
+                setRequestProperty("X-Correlation-Id", capture.id)
             }
             connection.outputStream.use { it.write(payload.toByteArray()) }
             val code = connection.responseCode

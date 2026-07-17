@@ -20,8 +20,10 @@ class AgentRunnerTest {
     /** Replays scripted assistant turns and records each context it was asked to complete. */
     private class FakeBrain(private val scripted: MutableList<JSONObject>) : AgentBrain {
         val seen = mutableListOf<JSONArray>()
-        override fun complete(messages: JSONArray, tools: JSONArray): JSONObject {
+        val correlationIds = mutableListOf<String>()
+        override fun complete(messages: JSONArray, tools: JSONArray, correlationId: String): JSONObject {
             seen.add(JSONArray(messages.toString())) // deep snapshot — runner mutates the original after
+            correlationIds.add(correlationId)
             return scripted.removeAt(0)
         }
     }
@@ -101,6 +103,32 @@ class AgentRunnerTest {
             listOf("call:list_files:{\"path\":\"/x\"}", "result:list_files", "text:done", "finished"),
             listener.events,
         )
+    }
+
+    @Test fun correlationIdIsStableAcrossStepsWithinOneRun() {
+        val session = store.create("t")
+        store.appendMessage(session.id, userTurn("organize my files"))
+        val brain = FakeBrain(
+            mutableListOf(
+                assistantToolCall("c1", "list_files", """{"path":"/x"}"""),
+                assistantText("done"),
+            )
+        )
+        AgentRunner(
+            session.id,
+            store,
+            brain,
+            FakeExecutor("two files"),
+            RecordingListener(),
+            systemPrompt = "SYS",
+            tools = JSONArray()
+        ).run()
+
+        // Two brain.complete() calls happened (tool step + final reply); both carried the same id,
+        // so the whole run is traceable through the server logs with one correlation id.
+        assertEquals(2, brain.correlationIds.size)
+        assertEquals(brain.correlationIds[0], brain.correlationIds[1])
+        assertTrue(brain.correlationIds[0].isNotBlank())
     }
 
     @Test fun plainReplyEndsImmediately() {

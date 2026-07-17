@@ -8,6 +8,7 @@ import de.christopherrehm.fieldnode.dispatch.FleetConfig
 import de.christopherrehm.fieldnode.dispatch.FleetUrlPolicy
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.UUID
 
 /**
  * Runs a notification action button (one-tap approve). The HTTP call is authenticated with the
@@ -39,6 +40,8 @@ class ActionReceiver : BroadcastReceiver() {
                     connectTimeout = 10_000
                     readTimeout = 15_000
                     setRequestProperty("X-Device-Token", config.token)
+                    // Each tapped action is its own unit of work (coding-standards 7.5).
+                    setRequestProperty("X-Correlation-Id", UUID.randomUUID().toString())
                     if (method == "POST" || method == "PUT") {
                         doOutput = true
                         setRequestProperty("Content-Type", "text/plain")
