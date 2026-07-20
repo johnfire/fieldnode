@@ -58,7 +58,7 @@ dependencies {
     // Real org.json on the JVM test classpath: SessionStore stores the agent's protocol JSONArray, and
     // the android.jar org.json is stubbed (throws "not mocked") under unit tests. Test-scoped only —
     // the app gets org.json from Android at runtime, so this adds nothing to the shipped APK.
-    testImplementation("org.json:json:20240303")
+    testImplementation("org.json:json:20260719")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test.ext:junit-ktx:1.2.1")
     androidTestImplementation("androidx.test:runner:1.6.2")
