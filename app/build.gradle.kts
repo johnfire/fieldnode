@@ -10,7 +10,10 @@ android {
     defaultConfig {
         applicationId = "de.christopherrehm.fieldnode"
         minSdk = 30        // Android 11 — MANAGE_EXTERNAL_STORAGE APIs are API 30+ (the device's level)
-        targetSdk = 30     // Android 11 — min target that can request MANAGE_EXTERNAL_STORAGE
+        targetSdk = 30     // Android 11 — DELIBERATE (2026-07-20): stays at 30 because the sole
+                            // target device (Redmi Note 8 Pro) runs API 30 and the
+                            // MANAGE_EXTERNAL_STORAGE grant flow is simplest here. Raising
+                            // targetSdk would add scoped-storage complexity with zero benefit.
         versionCode = 1
         versionName = "0.0.1"
 
@@ -19,6 +22,10 @@ android {
 
     buildTypes {
         release {
+            // DELIBERATE (2026-07-20): minification is disabled because this is a
+            // sideloaded personal app on a single device. R8 would shrink the APK but
+            // adds keep-rule maintenance and makes stack traces unreadable — costs
+            // that don't justify the benefit for a non-distributed app.
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
