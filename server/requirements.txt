@@ -1,7 +1,7 @@
 # Pinned to a set verified free of known CVEs (pip-audit, 2026-07-17) and confirmed to import and
 # run together on Python 3.12. starlette is pinned explicitly (not just via fastapi) because app.py
 # imports it directly and it's the security-critical floor. Server CI's pip-audit is the tripwire.
-fastapi==0.139.2
+fastapi==0.140.13
 uvicorn[standard]==0.51.0
 httpx==0.28.1
 staticmap==0.5.7
