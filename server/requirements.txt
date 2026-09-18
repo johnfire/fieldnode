@@ -2,7 +2,7 @@
 # run together on Python 3.12. starlette is pinned explicitly (not just via fastapi) because app.py
 # imports it directly and it's the security-critical floor. Server CI's pip-audit is the tripwire.
 fastapi==0.139.2
-uvicorn[standard]==0.51.0
+uvicorn[standard]==0.53.0
 httpx==0.28.1
 staticmap==0.5.7
 Pillow==12.3.0
